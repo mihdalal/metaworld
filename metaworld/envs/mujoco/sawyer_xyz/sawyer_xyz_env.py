@@ -149,8 +149,12 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # very first observation)
         self._prev_obs = self._get_curr_obs_combined_no_goal()
 
-
-    def reset_action_space(self, control_mode='end_effector', use_combined_action_space=False, action_scale=1/100):
+    def reset_action_space(
+        self,
+        control_mode="end_effector",
+        use_combined_action_space=False,
+        action_scale=1 / 100,
+    ):
         # primitives
         self.primitive_idx_to_name = {
             0: "angled_x_y_grasp",
@@ -205,6 +209,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         )
         self.use_combined_action_space = use_combined_action_space
         self.action_scale = action_scale
+        self.fixed_schema = False
         if self.use_combined_action_space and self.control_mode == "primitives":
             self.action_space = self.combined_action_space
             act_lower_primitive = np.zeros(self.num_primitives)
