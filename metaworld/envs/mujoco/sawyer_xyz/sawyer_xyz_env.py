@@ -97,8 +97,6 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         mocap_high=None,
         action_scale=1.0 / 100,
         action_rot_scale=1.0,
-        control_mode="end_effector",
-        use_combined_action_space=True,
     ):
         super().__init__(model_name, frame_skip=frame_skip)
         self.random_init = True
@@ -151,6 +149,8 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # very first observation)
         self._prev_obs = self._get_curr_obs_combined_no_goal()
 
+
+    def reset_action_space(self, control_mode='end_effector', use_combined_action_space=False, action_scale=1/100):
         # primitives
         self.primitive_idx_to_name = {
             0: "angled_x_y_grasp",
@@ -204,6 +204,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             combined_action_space_low, combined_action_space_high, dtype=np.float32
         )
         self.use_combined_action_space = use_combined_action_space
+        self.action_scale = action_scale
         if self.use_combined_action_space and self.control_mode == "primitives":
             self.action_space = self.combined_action_space
             act_lower_primitive = np.zeros(self.num_primitives)
@@ -748,12 +749,9 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         mocap_id = self.sim.model.body_mocapid[body_id]
         self.sim.data.mocap_quat[mocap_id] = value
 
-    def _get_reward_n_score(self, obs_dict):
-        return 0
-
     def ctrl_set_action(self, sim, action):
-        self.data.ctrl[0] = action[-2]
-        self.data.ctrl[1] = action[-1]
+        self.sim.data.ctrl[0] = action[-2]
+        self.sim.data.ctrl[1] = action[-1]
 
     def mocap_set_action(self, sim, action):
         if sim.model.nmocap > 0:
@@ -762,9 +760,16 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
 
             pos_delta = action[:, :3]
             quat_delta = action[:, 3:]
-            self.reset_mocap2body_xpos(sim)
-            sim.data.mocap_pos[:] = sim.data.mocap_pos + pos_delta
-            sim.data.mocap_quat[:] = sim.data.mocap_quat + quat_delta
+            new_mocap_pos = self.data.mocap_pos + pos_delta[None]
+            new_mocap_quat = self.data.mocap_quat + quat_delta[None]
+
+            new_mocap_pos[0, :] = np.clip(
+                new_mocap_pos[0, :],
+                self.mocap_low,
+                self.mocap_high,
+            )
+            self.data.set_mocap_pos("mocap", new_mocap_pos)
+            self.data.set_mocap_quat("mocap", new_mocap_quat)
 
     def reset_mocap_welds(self, sim):
         if sim.model.nmocap > 0 and sim.model.eq_data is not None:
@@ -813,9 +818,6 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         self.ctrl_set_action(self.sim, action)
         self.mocap_set_action(self.sim, action)
 
-    def get_ee_quat(self):
-        return self.sim.data.body_xquat[10]  # TODO: double check this!
-
     def rpy_to_quat(self, rpy):
         q = quaternion.from_euler_angles(rpy)
         return np.array([q.x, q.y, q.z, q.w])
@@ -835,7 +837,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         render_im_shape=(1000, 1000),
     ):
         for _ in range(200):
-            self._set_action(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+            self._set_action(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, -1]))
             self.sim.step()
             if render_every_step:
                 if render_mode == "rgb_array":
@@ -863,7 +865,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         render_im_shape=(1000, 1000),
     ):
         for _ in range(200):
-            self._set_action(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.04]))
+            self._set_action(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1, 1]))
             self.sim.step()
             if render_every_step:
                 if render_mode == "rgb_array":
@@ -938,7 +940,6 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # clamp the pose within workspace limits:
         gripper = self.sim.data.qpos[7:9]
         for _ in range(300):
-            self.reset_mocap2body_xpos(self.sim)
             delta = pose - self.get_endeff_pos()
             self._set_action(
                 np.array(
