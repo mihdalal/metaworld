@@ -52,20 +52,21 @@ class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
         self.data.set_mocap_quat("mocap", mocap_quat)
         self.sim.forward()
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state["model"]
-        del state["sim"]
-        del state["data"]
-        mjb = self.model.get_mjb()
-        return {"state": state, "mjb": mjb, "env_state": self.get_env_state()}
+    # (TODO): fix this for dm control backend
+    # def __getstate__(self):
+    #     state = self.__dict__.copy()
+    #     del state["model"]
+    #     del state["sim"]
+    #     del state["data"]
+    #     mjb = self.model.get_mjb()
+    #     return {"state": state, "mjb": mjb, "env_state": self.get_env_state()}
 
-    def __setstate__(self, state):
-        self.__dict__ = state["state"]
-        self.model = mujoco_py.load_model_from_mjb(state["mjb"])
-        self.sim = mujoco_py.MjSim(self.model)
-        self.data = self.sim.data
-        self.set_env_state(state["env_state"])
+    # def __setstate__(self, state):
+    #     self.__dict__ = state["state"]
+    #     self.model = mujoco_py.load_model_from_mjb(state["mjb"])
+    #     self.sim = mujoco_py.MjSim(self.model)
+    #     self.data = self.sim.data
+    #     self.set_env_state(state["env_state"])
 
     def reset_mocap_welds(self):
         """Resets the mocap welds that we use for actuation."""
