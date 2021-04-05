@@ -269,8 +269,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         self.set_state(qpos, qvel)
 
     def _get_site_pos(self, siteName):
-        _id = self.model.site_names.index(siteName)
-        return self.data.site_xpos[_id].copy()
+        return self.data.site_xpos[self.model.site_name2id(siteName)]
 
     def _set_pos_site(self, name, pos):
         """Sets the position of the site corresponding to `name`
