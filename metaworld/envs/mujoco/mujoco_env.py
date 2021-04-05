@@ -6,6 +6,8 @@ import glfw
 import gym
 import numpy as np
 from d4rl.kitchen.adept_envs.simulation import module
+from d4rl.kitchen.adept_envs.simulation.renderer import (DMRenderer,
+                                                         MjPyRenderer)
 from gym import error
 from gym.utils import seeding
 
@@ -51,6 +53,9 @@ class MujocoEnv(gym.Env, abc.ABC):
         self.frame_skip = frame_skip
 
         self._use_dm_backend = True
+        camera_settings=dict(
+                distance=1.75, lookat=[-0.00904308 , 0.5271911  , 0.29417769], azimuth=-90, elevation= -56
+            )
         if self._use_dm_backend:
             dm_mujoco = module.get_dm_mujoco()
             if model_path.endswith(".mjb"):
@@ -59,10 +64,13 @@ class MujocoEnv(gym.Env, abc.ABC):
                 self.sim = dm_mujoco.Physics.from_xml_path(model_path)
             self.model = self.sim.model
             self._patch_mjlib_accessors(self.model, self.sim.data)
+
+            self.renderer = DMRenderer(self.sim, camera_settings=camera_settings)
         else:  # Use mujoco_py
             mujoco_py = module.get_mujoco_py()
             self.model = mujoco_py.load_model_from_path(model_path)
             self.sim = mujoco_py.MjSim(self.model)
+            self.renderer = MjPyRenderer(self.sim, camera_settings=camera_settings)
         self.data = self.sim.data
         self.viewer = None
         self._viewers = {}
@@ -217,13 +225,18 @@ class MujocoEnv(gym.Env, abc.ABC):
                 warnings.warn(str(err), category=RuntimeWarning)
                 self._did_see_sim_exception = True
 
-    def render(self, mode="human"):
+    def render(self, mode="human",
+        width=64,
+        height=64,):
         if mode == "human":
-            self._get_viewer(mode).render()
+            # self._get_viewer(mode).render()
+            self.renderer.render_to_window()
         elif mode == "rgb_array":
-            return self.sim.render(
-                *self._rgb_array_res, mode="offscreen", camera_name="topview"
-            )[:, :, ::-1]
+            # return self.sim.render(
+            #     *self._rgb_array_res, mode="offscreen", camera_name="topview"
+            # )[:, :, ::-1]
+            return self.renderer.render_offscreen(width, height,
+            )
         else:
             raise ValueError("mode can only be either 'human' or 'rgb_array'")
 
