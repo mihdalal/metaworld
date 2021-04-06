@@ -6,8 +6,7 @@ import glfw
 import gym
 import numpy as np
 from d4rl.kitchen.adept_envs.simulation import module
-from d4rl.kitchen.adept_envs.simulation.renderer import (DMRenderer,
-                                                         MjPyRenderer)
+from d4rl.kitchen.adept_envs.simulation.renderer import DMRenderer, MjPyRenderer
 from gym import error
 from gym.utils import seeding
 
@@ -53,9 +52,12 @@ class MujocoEnv(gym.Env, abc.ABC):
         self.frame_skip = frame_skip
 
         self._use_dm_backend = True
-        camera_settings=dict(
-                distance=1.75, lookat=[-0.00904308 , 0.5271911  , 0.29417769], azimuth=-90, elevation= -56
-            )
+        camera_settings = dict(
+            distance=1.75,
+            lookat=[-0.00904308, 0.5271911, 0.29417769],
+            azimuth=-90,
+            elevation=-56,
+        )
         if self._use_dm_backend:
             dm_mujoco = module.get_dm_mujoco()
             if model_path.endswith(".mjb"):
@@ -136,6 +138,45 @@ class MujocoEnv(gym.Env, abc.ABC):
 
         if not hasattr(data, "get_body_xquat"):
             data.get_body_xquat = lambda name: data.body_xquat[model.body_name2id(name)]
+
+        if not hasattr(data, "get_body_xmat"):
+            # (TODO): verify this is correct reshape and make sure xmat is the right thing for body_xmat
+            data.get_body_xmat = lambda name: data.xmat[
+                model.body_name2id(name)
+            ].reshape(3, 3)
+
+        if not hasattr(data, "get_geom_xpos"):
+            data.get_geom_xpos = lambda name: data.geom_xpos[model.geom_name2id(name)]
+
+        if not hasattr(data, "get_geom_xquat"):
+            data.get_geom_xquat = lambda name: data.geom_xquat[model.geom_name2id(name)]
+
+        if not hasattr(data, "get_joint_qpos"):
+            # (TODO): verify this is the correct index
+            data.get_joint_qpos = lambda name: data.qpos[model.joint_name2id(name)]
+
+        if not hasattr(data, "set_joint_qpos"):
+            # (TODO): verify this is the correct index
+            def set_joint_qpos(name, value):
+                data.qpos[model.joint_name2id(name)] = value
+
+            data.set_joint_qpos = lambda name, value: set_joint_qpos(name, value)
+
+        if not hasattr(data, "get_site_xmat"):
+            # (TODO): verify this is correct reshape
+            data.get_site_xmat = lambda name: data.site_xmat[
+                model.site_name2id(name)
+            ].reshape(3, 3)
+
+        if not hasattr(model, "get_joint_qpos_addr"):
+            model.get_joint_qpos_addr = lambda name: model.joint_name2id(name)
+
+        if not hasattr(data, "get_geom_xmat"):
+            data.get_geom_xmat = lambda name: data.geom_xmat[
+                model.geom_name2id(name)
+            ].reshape(
+                3, 3
+            )  # (TODO): verify this is correct reshape
 
         if not hasattr(data, "get_mocap_pos"):
             data.get_mocap_pos = lambda name: data.mocap_pos[
@@ -225,9 +266,12 @@ class MujocoEnv(gym.Env, abc.ABC):
                 warnings.warn(str(err), category=RuntimeWarning)
                 self._did_see_sim_exception = True
 
-    def render(self, mode="human",
+    def render(
+        self,
+        mode="human",
         width=64,
-        height=64,):
+        height=64,
+    ):
         if mode == "human":
             # self._get_viewer(mode).render()
             self.renderer.render_to_window()
@@ -235,7 +279,9 @@ class MujocoEnv(gym.Env, abc.ABC):
             # return self.sim.render(
             #     *self._rgb_array_res, mode="offscreen", camera_name="topview"
             # )[:, :, ::-1]
-            return self.renderer.render_offscreen(width, height,
+            return self.renderer.render_offscreen(
+                width,
+                height,
             )
         else:
             raise ValueError("mode can only be either 'human' or 'rgb_array'")
