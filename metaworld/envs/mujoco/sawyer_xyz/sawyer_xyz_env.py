@@ -155,7 +155,9 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         control_mode="end_effector",
         use_combined_action_space=False,
         action_scale=1 / 100,
+        max_path_length=150,
     ):
+        self.max_path_length = max_path_length
         # primitives
         self.primitive_idx_to_name = {
             0: "angled_x_y_grasp",
@@ -172,9 +174,11 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             11: "rotate_about_x_axis",
         }
         self.primitive_name_to_func = dict(
-            angled_x_y_grasp=self.angled_x_y_grasp,
+            # angled_x_y_grasp=self.angled_x_y_grasp,
+            angled_x_y_grasp=lambda x, render_every_step, render_mode, render_im_shape: None,
             move_delta_ee_pose=self.move_delta_ee_pose,
-            rotate_about_y_axis=self.rotate_about_y_axis,
+            # rotate_about_y_axis=self.rotate_about_y_axis,
+            rotate_about_y_axis=lambda x, render_every_step, render_mode, render_im_shape: None,
             lift=self.lift,
             drop=self.drop,
             move_left=self.move_left,
@@ -183,7 +187,8 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             move_backward=self.move_backward,
             open_gripper=self.open_gripper,
             close_gripper=self.close_gripper,
-            rotate_about_x_axis=self.rotate_about_x_axis,
+            # rotate_about_x_axis=self.rotate_about_x_axis,
+            rotate_about_x_axis=lambda x, render_every_step, render_mode, render_im_shape: None,
         )
         self.primitive_name_to_action_idx = dict(
             angled_x_y_grasp=[0, 1, 2],
@@ -203,8 +208,8 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         self.num_primitives = len(self.primitive_name_to_func)
         self.control_mode = control_mode
 
-        combined_action_space_low = -1.4 * np.ones(self.max_arg_len)
-        combined_action_space_high = 1.4 * np.ones(self.max_arg_len)
+        combined_action_space_low = -1*np.ones(self.max_arg_len)
+        combined_action_space_high = np.ones(self.max_arg_len)
         self.combined_action_space = Box(
             combined_action_space_low, combined_action_space_high, dtype=np.float32
         )
@@ -507,20 +512,25 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         )
 
     @_assert_task_is_set
-    def step(self, action):
+    def step(self, action, render_every_step=False,
+        render_mode="rgb_array",
+        render_im_shape=(1000, 1000),):
+        a = np.clip(action, -1.0, 1.0)
         if self.control_mode in [
             "joint_position",
             "joint_velocity",
             "torque",
             "end_effector",
         ]:
-            a = np.clip(action, -1.0, 1.0)
             if self.control_mode == "end_effector":
                 self.set_xyz_action(action[:3])
                 self.do_simulation([action[-1], -action[-1]])
         else:
             self.act(
                 action,
+                render_every_step=render_every_step,
+                render_mode=render_mode,
+                render_im_shape=render_im_shape,
             )
 
         self.curr_path_length += 1
@@ -851,7 +861,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                             render_mode,
                             render_im_shape[0],
                             render_im_shape[1],
-                            original=True,
+
                         )
                     )
                 else:
@@ -859,7 +869,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                         render_mode,
                         render_im_shape[0],
                         render_im_shape[1],
-                        original=True,
+
                     )
 
     def open_gripper(
@@ -879,7 +889,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                             render_mode,
                             render_im_shape[0],
                             render_im_shape[1],
-                            original=True,
+
                         )
                     )
                 else:
@@ -887,7 +897,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                         render_mode,
                         render_im_shape[0],
                         render_im_shape[1],
-                        original=True,
+
                     )
 
     def rotate_ee(
@@ -924,7 +934,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                             render_mode,
                             render_im_shape[0],
                             render_im_shape[1],
-                            original=True,
+
                         )
                     )
                 else:
@@ -932,7 +942,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                         render_mode,
                         render_im_shape[0],
                         render_im_shape[1],
-                        original=True,
+
                     )
 
     def goto_pose(
@@ -945,6 +955,11 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # clamp the pose within workspace limits:
         gripper = self.sim.data.qpos[7:9]
         for _ in range(300):
+            pose= np.clip(
+                pose,
+                self.mocap_low,
+                self.mocap_high,
+            )
             delta = pose - self.get_endeff_pos()
             self._set_action(
                 np.array(
@@ -969,7 +984,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                             render_mode,
                             render_im_shape[0],
                             render_im_shape[1],
-                            original=True,
+
                         )
                     )
                 else:
@@ -977,7 +992,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                         render_mode,
                         render_im_shape[0],
                         render_im_shape[1],
-                        original=True,
+
                     )
 
     def rotate_about_x_axis(
@@ -1171,8 +1186,8 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         if not np.any(a):
             # all zeros should be a no-op!!!
             return
-        a = a * self.action_scale
         a = np.clip(a, self.action_space.low, self.action_space.high)
+        a = a * self.action_scale
         primitive_idx, primitive_args = (
             np.argmax(a[: self.num_primitives]),
             a[self.num_primitives :],
