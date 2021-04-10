@@ -52,12 +52,13 @@ class MujocoEnv(gym.Env, abc.ABC):
         self.frame_skip = frame_skip
 
         self._use_dm_backend = True
-        camera_settings = dict(
-            distance=1.75,
-            lookat=[-0.00904308, 0.5271911, 0.29417769],
-            azimuth=-90,
-            elevation=-56,
-        )
+        # camera_settings = dict(
+        #     distance=1.75,
+        #     lookat=[-0.00904308, 0.5271911, 0.29417769],
+        #     azimuth=-90,
+        #     elevation=-56,
+        # )
+        camera_settings = {}
         if self._use_dm_backend:
             dm_mujoco = module.get_dm_mujoco()
             if model_path.endswith(".mjb"):
