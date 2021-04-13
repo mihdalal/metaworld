@@ -1,23 +1,19 @@
 import abc
 import warnings
-from os import path
-
-import glfw
-import gym
-import numpy as np
 from d4rl.kitchen.adept_envs.simulation import module
 from d4rl.kitchen.adept_envs.simulation.renderer import DMRenderer, MjPyRenderer
+
+import glfw
 from gym import error
 from gym.utils import seeding
+import numpy as np
+from os import path
+import gym
 
 try:
     import mujoco_py
 except ImportError as e:
-    raise error.DependencyNotInstalled(
-        "{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(
-            e
-        )
-    )
+    raise error.DependencyNotInstalled("{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(e))
 
 
 def _assert_task_is_set(func):
@@ -25,15 +21,14 @@ def _assert_task_is_set(func):
         env = args[0]
         if not env._set_task_called:
             raise RuntimeError(
-                "You must call env.set_task before using env." + func.__name__
+                'You must call env.set_task before using env.'
+                + func.__name__
             )
         return func(*args, **kwargs)
-
     return inner
 
 
 DEFAULT_SIZE = 500
-
 
 class MujocoEnv(gym.Env, abc.ABC):
     """
@@ -50,7 +45,6 @@ class MujocoEnv(gym.Env, abc.ABC):
             raise IOError("File %s does not exist" % model_path)
 
         self.frame_skip = frame_skip
-
         self._use_dm_backend = True
         # camera_settings = dict(
         #     distance=1.75,
@@ -80,8 +74,8 @@ class MujocoEnv(gym.Env, abc.ABC):
         self._rgb_array_res = rgb_array_res
 
         self.metadata = {
-            "render.modes": ["human"],
-            "video.frames_per_second": int(np.round(1.0 / self.dt)),
+            'render.modes': ['human'],
+            'video.frames_per_second': int(np.round(1.0 / self.dt))
         }
         self.init_qpos = self.sim.data.qpos.ravel().copy()
         self.init_qvel = self.sim.data.qvel.ravel().copy()
@@ -249,10 +243,8 @@ class MujocoEnv(gym.Env, abc.ABC):
         return self.model.opt.timestep * self.frame_skip
 
     def do_simulation(self, ctrl, n_frames=None):
-        if getattr(self, "curr_path_length", 0) > self.max_path_length:
-            raise ValueError(
-                "Maximum path length allowed by the benchmark has been exceeded"
-            )
+        if getattr(self, 'curr_path_length', 0) > self.max_path_length:
+            raise ValueError('Maximum path length allowed by the benchmark has been exceeded')
         if self._did_see_sim_exception:
             return
 
@@ -267,12 +259,7 @@ class MujocoEnv(gym.Env, abc.ABC):
                 warnings.warn(str(err), category=RuntimeWarning)
                 self._did_see_sim_exception = True
 
-    def render(
-        self,
-        mode="human",
-        width=64,
-        height=64,
-    ):
+    def render(self, mode='human', width=64, height=64,):
         if mode == "human":
             # self._get_viewer(mode).render()
             self.renderer.render_to_window()
@@ -295,7 +282,7 @@ class MujocoEnv(gym.Env, abc.ABC):
     def _get_viewer(self, mode):
         self.viewer = self._viewers.get(mode)
         if self.viewer is None:
-            if mode == "human":
+            if mode == 'human':
                 self.viewer = mujoco_py.MjViewer(self.sim)
             self.viewer_setup()
             self._viewers[mode] = self.viewer
