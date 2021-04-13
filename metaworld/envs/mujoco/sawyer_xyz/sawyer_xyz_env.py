@@ -156,55 +156,91 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         use_combined_action_space=False,
         action_scale=1 / 100,
         max_path_length=150,
+        remove_rotation_primitives=True,
     ):
         self.max_path_length = max_path_length
+        self.action_scale = action_scale
+
         # primitives
-        self.primitive_idx_to_name = {
-            0: "angled_x_y_grasp",
-            1: "move_delta_ee_pose",
-            2: "rotate_about_y_axis",
-            3: "lift",
-            4: "drop",
-            5: "move_left",
-            6: "move_right",
-            7: "move_forward",
-            8: "move_backward",
-            9: "open_gripper",
-            10: "close_gripper",
-            11: "rotate_about_x_axis",
-        }
-        self.primitive_name_to_func = dict(
-            # angled_x_y_grasp=self.angled_x_y_grasp,
-            angled_x_y_grasp=lambda x, render_every_step, render_mode, render_im_shape: None,
-            move_delta_ee_pose=self.move_delta_ee_pose,
-            # rotate_about_y_axis=self.rotate_about_y_axis,
-            rotate_about_y_axis=lambda x, render_every_step, render_mode, render_im_shape: None,
-            lift=self.lift,
-            drop=self.drop,
-            move_left=self.move_left,
-            move_right=self.move_right,
-            move_forward=self.move_forward,
-            move_backward=self.move_backward,
-            open_gripper=self.open_gripper,
-            close_gripper=self.close_gripper,
-            # rotate_about_x_axis=self.rotate_about_x_axis,
-            rotate_about_x_axis=lambda x, render_every_step, render_mode, render_im_shape: None,
-        )
-        self.primitive_name_to_action_idx = dict(
-            angled_x_y_grasp=[0, 1, 2],
-            move_delta_ee_pose=[3, 4, 5],
-            rotate_about_y_axis=6,
-            lift=7,
-            drop=8,
-            move_left=9,
-            move_right=10,
-            move_forward=11,
-            move_backward=12,
-            rotate_about_x_axis=13,
-            open_gripper=[],  # doesn't matter
-            close_gripper=[],  # doesn't matter
-        )
-        self.max_arg_len = 14
+        if remove_rotation_primitives:
+            self.primitive_idx_to_name = {
+                0: "move_delta_ee_pose",
+                1: "lift",
+                2: "drop",
+                3: "move_left",
+                4: "move_right",
+                5: "move_forward",
+                6: "move_backward",
+                7: "open_gripper",
+                8: "close_gripper",
+            }
+            self.primitive_name_to_func = dict(
+                move_delta_ee_pose=self.move_delta_ee_pose,
+                lift=self.lift,
+                drop=self.drop,
+                move_left=self.move_left,
+                move_right=self.move_right,
+                move_forward=self.move_forward,
+                move_backward=self.move_backward,
+                open_gripper=self.open_gripper,
+                close_gripper=self.close_gripper,
+            )
+            self.primitive_name_to_action_idx = dict(
+                move_delta_ee_pose=[0, 1, 2],
+                lift=3,
+                drop=4,
+                move_left=5,
+                move_right=6,
+                move_forward=7,
+                move_backward=8,
+                open_gripper=[],  # doesn't matter
+                close_gripper=[],  # doesn't matter
+            )
+            self.max_arg_len = 9
+        else:
+            self.primitive_idx_to_name = {
+                0: "angled_x_y_grasp",
+                1: "move_delta_ee_pose",
+                2: "rotate_about_y_axis",
+                3: "lift",
+                4: "drop",
+                5: "move_left",
+                6: "move_right",
+                7: "move_forward",
+                8: "move_backward",
+                9: "open_gripper",
+                10: "close_gripper",
+                11: "rotate_about_x_axis",
+            }
+            self.primitive_name_to_func = dict(
+                angled_x_y_grasp=self.angled_x_y_grasp,
+                move_delta_ee_pose=self.move_delta_ee_pose,
+                rotate_about_y_axis=self.rotate_about_y_axis,
+                lift=self.lift,
+                drop=self.drop,
+                move_left=self.move_left,
+                move_right=self.move_right,
+                move_forward=self.move_forward,
+                move_backward=self.move_backward,
+                open_gripper=self.open_gripper,
+                close_gripper=self.close_gripper,
+                rotate_about_x_axis=self.rotate_about_x_axis,
+            )
+            self.primitive_name_to_action_idx = dict(
+                angled_x_y_grasp=[0, 1, 2],
+                move_delta_ee_pose=[3, 4, 5],
+                rotate_about_y_axis=6,
+                lift=7,
+                drop=8,
+                move_left=9,
+                move_right=10,
+                move_forward=11,
+                move_backward=12,
+                rotate_about_x_axis=13,
+                open_gripper=[],  # doesn't matter
+                close_gripper=[],  # doesn't matter
+            )
+            self.max_arg_len = 14
         self.num_primitives = len(self.primitive_name_to_func)
         self.control_mode = control_mode
 
@@ -214,7 +250,6 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             combined_action_space_low, combined_action_space_high, dtype=np.float32
         )
         self.use_combined_action_space = use_combined_action_space
-        self.action_scale = action_scale
         self.fixed_schema = False
         if self.use_combined_action_space and self.control_mode == "primitives":
             self.action_space = self.combined_action_space
