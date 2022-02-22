@@ -67,9 +67,8 @@ class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
         self.data = self.sim.data
         self.set_env_state(state["env_state"])
 
-    def reset_mocap_welds(self):
+    def reset_mocap_welds(self, sim):
         """Resets the mocap welds that we use for actuation."""
-        sim = self.sim
         if sim.model.nmocap > 0 and sim.model.eq_data is not None:
             for i in range(sim.model.eq_data.shape[0]):
                 if sim.model.eq_type[i] == mujoco_py.const.EQ_WELD:
