@@ -8,7 +8,8 @@ import quaternion
 from gym.spaces import Box, Discrete
 from metaworld.envs import reward_utils
 from metaworld.envs.mujoco.mujoco_env import MujocoEnv, _assert_task_is_set
-
+from robosuite.utils.transform_utils import convert_quat
+from robosuite.utils.transform_utils import mat2quat
 
 class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
     """
@@ -24,7 +25,20 @@ class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
         self.reset_mocap_welds(self.sim)
 
     def get_endeff_pos(self):
-        return self.data.get_body_xpos("hand").copy()
+        site_name = "endEffector"
+        pos = self.sim.data.site_xpos[self.sim.model.site_name2id(site_name)].copy()
+        return pos
+
+    def get_endeff_quat(self):
+        site_name = "endEffector"
+        quat = convert_quat(
+            mat2quat(
+                self.sim.data.site_xmat[self.sim.model.site_name2id(site_name)].reshape(
+                    (3, 3)
+                )
+            )
+        ).copy()
+        return quat
 
     @property
     def tcp_center(self):
@@ -259,6 +273,13 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         self.discrete_goals = goals
         # update the goal_space to a Discrete space
         self.discrete_goal_space = Discrete(len(self.discrete_goals))
+
+    def _set_obj_pose(self, pose):
+        qpos = self.data.qpos.flat.copy()
+        qvel = self.data.qvel.flat.copy()
+        qpos[9:16] = pose
+        qvel[9:16] = 0
+        self.set_state(qpos, qvel)
 
     def _set_obj_xyz(self, pos):
         qpos = self.data.qpos.flat.copy()

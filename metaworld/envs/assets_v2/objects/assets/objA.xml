@@ -2,6 +2,6 @@
     <body childclass="bin_base" name="objA">
         <geom material="obj_green" size="0.02 0.02 0.02" type="box"/>
 
-        <geom class="obj_col" size="0.02 0.02 0.02" type="box" mass=".1"/>
+        <geom class="obj_col" name="obj" size="0.02 0.02 0.02" type="box" mass=".1"/>
     </body>
 </mujocoinclude>
