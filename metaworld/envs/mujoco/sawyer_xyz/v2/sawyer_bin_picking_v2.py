@@ -75,7 +75,9 @@ class SawyerBinPickingEnvV2(SawyerXYZEnv):
             grasp_success,
             obj_to_target,
             grasp_reward,
-            in_place_reward
+            in_place_reward,
+            lifted,
+            pinched_without_obj,
         ) = self.compute_reward(action, obs)
 
         info = {
@@ -86,6 +88,8 @@ class SawyerBinPickingEnvV2(SawyerXYZEnv):
             'in_place_reward': in_place_reward,
             'obj_to_target': obj_to_target,
             'unscaled_reward': reward,
+            'lifted': float(lifted),
+            'pinched_without_obj': float(pinched_without_obj),
         }
 
         return reward, info
@@ -172,7 +176,7 @@ class SawyerBinPickingEnvV2(SawyerXYZEnv):
         pinched_without_obj = obs[3] < 0.43
         lifted = obj[2] - 0.02 > self.obj_init_pos[2]
         # Increase reward when properly grabbed obj
-        grasp_success = near_object and lifted and not pinched_without_obj
+        grasp_success = near_object and lifted
         if grasp_success:
             reward += 1. + 5. * reward_utils.hamacher_product(
                 above_floor, in_place
@@ -187,5 +191,7 @@ class SawyerBinPickingEnvV2(SawyerXYZEnv):
             grasp_success,
             target_to_obj,
             object_grasped,
-            in_place
+            in_place,
+            lifted,
+            pinched_without_obj,
         )
