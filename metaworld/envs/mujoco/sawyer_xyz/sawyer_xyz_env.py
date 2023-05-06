@@ -161,6 +161,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # doesn't seem to matter (it will only effect frame-stacking for the
         # very first observation)
         self._prev_obs = self._get_curr_obs_combined_no_goal()
+        self.reset_action_space()
 
     def reset_action_space(
         self,
