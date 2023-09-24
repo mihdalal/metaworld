@@ -73,7 +73,7 @@ class SawyerPegInsertionSideEnvV2(SawyerXYZEnv):
         reward, tcp_to_obj, tcp_open, obj_to_target, grasp_reward, in_place_reward, collision_box_front, ip_orig= (
             self.compute_reward(action, obs))
         grasp_success = float(tcp_to_obj < 0.02 and (tcp_open > 0) and (obj[2] - 0.01 > self.obj_init_pos[2]))
-        success = float(obj_to_target <= 0.07)
+        success = float(obj_to_target <= 0.13) # previously was 0.07
         near_object = float(tcp_to_obj <= 0.03)
 
         info = {
