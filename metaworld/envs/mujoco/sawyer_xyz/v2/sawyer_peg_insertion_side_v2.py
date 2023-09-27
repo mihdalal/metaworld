@@ -75,7 +75,6 @@ class SawyerPegInsertionSideEnvV2(SawyerXYZEnv):
         grasp_success = float(tcp_to_obj < 0.02 and (tcp_open > 0) and (obj[2] - 0.01 > self.obj_init_pos[2]))
         success = float(obj_to_target <= 0.10) # previously was 0.07
         near_object = float(tcp_to_obj <= 0.03)
-
         info = {
             'success': success,
             'near_object': near_object,
@@ -117,13 +116,19 @@ class SawyerPegInsertionSideEnvV2(SawyerXYZEnv):
         tcp = self.tcp_center
         obj = obs[4:7]
         obj_head = self._get_site_pos('pegHead')
+        obj_end = self._get_site_pos('pegEnd')
         tcp_opened = obs[3]
         target = self._target_pos
         tcp_to_obj = np.linalg.norm(obj - tcp)
         scale = np.array([1., 2., 2.])
         #  force agent to pick up object then insert
-        obj_to_target = np.linalg.norm((obj_head - target) * scale)
-
+        obj_to_target = min(
+            np.linalg.norm((obj_head - target) * scale),
+            np.linalg.norm((obj_end - target) * scale)
+        )
+        # print(f"Head to target: {np.linalg.norm(obj_head - target)}")
+        # print(f"Tail to target: {np.linalg.norm(obj_end - target)}")
+        # print("_______________")
         in_place_margin = np.linalg.norm((self.peg_head_pos_init - target) * scale)
         in_place = reward_utils.tolerance(obj_to_target,
                                     bounds=(0, self.TARGET_RADIUS),
