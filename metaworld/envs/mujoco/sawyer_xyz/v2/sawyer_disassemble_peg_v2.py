@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from gym.spaces import Box
 
@@ -107,6 +108,15 @@ class SawyerNutDisassembleEnvV2(SawyerXYZEnv):
         self._set_obj_xyz(self.obj_init_pos)
 
         return self._get_obs()
+    
+    def get_env_state(self):
+        state = super().get_env_state()
+        state = (*state, self.sim.model.body_pos[self.model.body_name2id('peg')])
+        return copy.deepcopy(state)
+    
+    def set_env_state(self, state):
+        self.sim.model.body_pos[self.model.body_name2id('peg')] = state[-1]
+        super().set_env_state(state[:-1])
 
     @staticmethod
     def _reward_quat(obs):
